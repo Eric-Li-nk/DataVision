@@ -371,6 +371,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d98ee2a5872f73439478896d95fd5a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  tiroirPrefab: {fileID: 6274881945670147587, guid: 3b523f84368ed5046a6dc5238834b127, type: 3}
 --- !u!4 &1585359732
 Transform:
   m_ObjectHideFlags: 0
