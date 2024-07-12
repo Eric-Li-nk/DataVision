@@ -14,16 +14,29 @@ public class TowerImage : MonoBehaviour
     [SerializeField] private GameObject tiroirPrefab;
     [SerializeField] private TextAsset imageInfoRaw;
 
+    [SerializeField] private float _maxHeight = 5.0f;
+    [SerializeField] private float _minHeight = 0.1f;
+    [SerializeField] private float _dimensionScale = 0.01f;
+
     private Dictionary<string, float[]> imageInfoList = new Dictionary<string, float[]>();
 
-    private float tiroirHeight = 0.05f;
+    private float _tiroirHeightPosition = 0.0f;
+    private float _maxImageSize = 0.0f;
 
     // Start is called before the first frame update
     private void Start()
     {
         LoadImageInfoList();
-        //ImageInfoListOrderByName();
-        ImageInfoListOrderByAreaSize();
+        // On récupère la plus grande taille en Ko des images
+        _maxImageSize = imageInfoList.Max(pair => pair.Value[0]);
+        ImageInfoListOrderByName();
+        GenerateTower();
+    }
+
+    private void GenerateTower()
+    {
+        // Réinitialise 
+        _tiroirHeightPosition = 0.0f;
         
         // On récupère le nom des images dans une liste
         List<string> imageNameList = imageInfoList.Keys.ToList();
@@ -34,14 +47,24 @@ public class TowerImage : MonoBehaviour
             // On récupère les info de l'image
             string imageName = imageNameList[i];
             float[] imageValues = imageInfoList[imageName];
+            
+            // On calcule la hauteur du tiroir
+            float tiroirHeight = ComputeTiroirHeight(imageValues[0]);
 
             // Création du tiroir
-            Vector3 position = new Vector3(0, tiroirHeight * i, 0);
+            Vector3 position = new Vector3(0, _tiroirHeightPosition, 0);
             GameObject tiroir = Instantiate(tiroirPrefab, position, Quaternion.identity, transform);
             Tiroir tiroirScript = tiroir.GetComponent<Tiroir>();
             tiroirScript.Initialize(imageName, imageValues, tiroirHeight);
+
+            _tiroirHeightPosition += tiroirHeight;
         }
-        
+    }
+
+    private void ClearTower()
+    {
+        foreach (Transform tiroir in transform)
+            Destroy(tiroir.gameObject);
     }
     
     // Initialise le dictionaire contenant la liste des images disponibles dans ressources
@@ -77,6 +100,30 @@ public class TowerImage : MonoBehaviour
         }
     }
 
+    private float ComputeTiroirHeight(float imageSize)
+    {
+        // Produit en croix
+        return imageSize / _maxImageSize * (_maxHeight - _minHeight) + _minHeight;
+    }
+
+    public void OrderSettings(int val)
+    {
+        ClearTower();
+        switch (val)
+        {
+            case 0:
+                ImageInfoListOrderByName();
+                break;
+            case 1:
+                ImageInfoListOrderByAreaSize();
+                break;
+            case 2:
+                ImageInfoListOrderByAverageHue();
+                break;
+        }
+        GenerateTower();
+    }
+
     private void ImageInfoListOrderByName()
     {
         // Triage des images dans l'ordre croissant du nom des images
@@ -86,6 +133,11 @@ public class TowerImage : MonoBehaviour
     private void ImageInfoListOrderByAreaSize()
     {
         imageInfoList = imageInfoList.OrderByDescending(pair => pair.Value[2] * pair.Value[3]).ToDictionary(pair => pair.Key, pair => pair.Value);
+    }
+    
+    private void ImageInfoListOrderByAverageHue()
+    {
+        imageInfoList = imageInfoList.OrderBy(pair => pair.Value[1]).ToDictionary(pair => pair.Key, pair => pair.Value);
     }
     
 }
