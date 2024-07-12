@@ -1,14 +1,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
 
-    [SerializeField] private float _movementSpeed =  50.0f;
+    [SerializeField] private float _movementSpeed =  150.0f;
+    [SerializeField] private Camera _playerCamera;
+    [SerializeField] private Camera _overviewCamera;
     
     private Vector3 _direction = Vector3.zero;
     private float _sprintFactor = 1.0f;
@@ -37,6 +38,12 @@ public class PlayerController : MonoBehaviour
             _sprintFactor = 2.0f;
         else if (context.canceled)
             _sprintFactor = 1.0f;
+    }
+
+    public void SwitchCamera(InputAction.CallbackContext context)
+    {
+        _playerCamera.enabled = !_playerCamera.enabled;
+        _overviewCamera.enabled = !_overviewCamera.enabled;
     }
     
 }

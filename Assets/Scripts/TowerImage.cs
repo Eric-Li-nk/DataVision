@@ -14,18 +14,23 @@ public class TowerImage : MonoBehaviour
     [SerializeField] private GameObject tiroirPrefab;
     [SerializeField] private TextAsset imageInfoRaw;
 
-    [SerializeField] private float _maxHeight = 5.0f;
-    [SerializeField] private float _minHeight = 0.1f;
-    [SerializeField] private float _dimensionScale = 0.01f;
+    [SerializeField] private float _maxHeight = 40.0f;
+    [SerializeField] private float _minHeight = 0.01f;
+    [SerializeField] private float _dimensionScale = 0.1f;
+
+    [SerializeField] private UnityEngine.UI.Slider _sliderDimensionScale;
 
     private Dictionary<string, float[]> imageInfoList = new Dictionary<string, float[]>();
 
     private float _tiroirHeightPosition = 0.0f;
     private float _maxImageSize = 0.0f;
+    private bool _imageAlign = false;
+    private bool _showTexture = false;
 
     // Start is called before the first frame update
     private void Start()
     {
+        _sliderDimensionScale.value = _dimensionScale;
         LoadImageInfoList();
         // On récupère la plus grande taille en Ko des images
         _maxImageSize = imageInfoList.Max(pair => pair.Value[0]);
@@ -36,6 +41,7 @@ public class TowerImage : MonoBehaviour
     private void GenerateTower()
     {
         // Réinitialise 
+        ClearTower();
         _tiroirHeightPosition = 0.0f;
         
         // On récupère le nom des images dans une liste
@@ -50,14 +56,23 @@ public class TowerImage : MonoBehaviour
             
             // On calcule la hauteur du tiroir
             float tiroirHeight = ComputeTiroirHeight(imageValues[0]);
-
+            _tiroirHeightPosition += tiroirHeight / 2.0f;
+            
             // Création du tiroir
             Vector3 position = new Vector3(0, _tiroirHeightPosition, 0);
+            if (_imageAlign)
+                position.z = - imageValues[3] * _dimensionScale / 2;
             GameObject tiroir = Instantiate(tiroirPrefab, position, Quaternion.identity, transform);
             Tiroir tiroirScript = tiroir.GetComponent<Tiroir>();
-            tiroirScript.Initialize(imageName, imageValues, tiroirHeight);
-
-            _tiroirHeightPosition += tiroirHeight;
+            tiroirScript.Initialize(imageName, imageValues, tiroirHeight, _dimensionScale);
+            
+            // Chargement du texture
+            if(_showTexture)
+                tiroirScript.LoadTexture();
+            else
+                tiroirScript.UnloadTexture();
+            
+            _tiroirHeightPosition += tiroirHeight / 2.0f;
         }
     }
 
@@ -108,7 +123,6 @@ public class TowerImage : MonoBehaviour
 
     public void OrderSettings(int val)
     {
-        ClearTower();
         switch (val)
         {
             case 0:
@@ -124,10 +138,47 @@ public class TowerImage : MonoBehaviour
         GenerateTower();
     }
 
+    public void SetImageAlign(bool val)
+    {
+        _imageAlign = val;
+        GenerateTower();
+    }
+
+    public void SetImageTexture(bool val)
+    {
+        _showTexture = val;
+        if (val)
+        {
+            foreach (Transform tiroir in transform)
+            {
+                Tiroir tiroirScript = tiroir.GetComponent<Tiroir>();
+                tiroirScript.LoadTexture();
+            }
+        }
+        else
+        {
+            foreach (Transform tiroir in transform)
+            {
+                Tiroir tiroirScript = tiroir.GetComponent<Tiroir>();
+                tiroirScript.UnloadTexture();
+            }
+        }
+    }
+
+    public void SetDimensionScale(float val)
+    {
+        _dimensionScale = val;
+        foreach (Transform tiroir in transform)
+        {
+            Tiroir tiroirScript = tiroir.GetComponent<Tiroir>();
+            tiroirScript.Resize(val, _imageAlign);
+        }
+    }
+
     private void ImageInfoListOrderByName()
     {
         // Triage des images dans l'ordre croissant du nom des images
-        imageInfoList = imageInfoList.OrderBy(pair => pair.Key.Length).ToDictionary(pair => pair.Key, pair => pair.Value);
+        imageInfoList = imageInfoList.OrderBy(pair => pair.Key.Length).OrderBy(pair => pair.Key).ToDictionary(pair => pair.Key, pair => pair.Value);
     }
 
     private void ImageInfoListOrderByAreaSize()
